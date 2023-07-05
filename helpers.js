@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { NewsApi } = require('newsapi');
-const newsapi = new NewsApi('YOUR_NEWSAPI_API_KEY');
+const newsapi = new NewsApi('adssdsdsdsads');
 
 const users = [];
 
