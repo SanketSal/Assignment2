@@ -1,82 +1,71 @@
-var jwt = require("jsonwebtoken");
-var bcrypt = require("bcrypt");
-var User = require("../models/user");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const { validateRegistration, validateLogin } = require('../utils/validation');
 
-var signup = (req, res) => {
-  const user = new User({
-    fullName: req.body.fullName,
-    email: req.body.email,
-   
-    preferences:req.body.preferences,
-    password: bcrypt.hashSync(req.body.password, 8)
-  });
+// Register a new user
+async function register(req, res) {
+  try {
+    const { error } = validateRegistration(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
 
-  user.save().then(data => {
-    res.status(200)
-    .send({
-        message: "User Registered successfully"
-      });
-  }).catch(err => {
-    res.status(500)
-    .send({
-      message: err
-    });
-    return;
-  });
+    const { username, password } = req.body;
+
+    // Check if the user already exists
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user
+    const user = new User({ username, password: hashedPassword });
+    await user.save();
+
+    return res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Log in a user
+async function login(req, res) {
+  try {
+    const { error } = validateLogin(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
+    const { username, password } = req.body;
+
+    // Find the user
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    // Compare the passwords
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign({ username: user.username }, 'secret-key');
+
+    return res.status(200).json({ token });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+module.exports = {
+  register,
+  login,
 };
-
-var signin = (req, res) => {
-  User.findOne({
-      email: req.body.email
-    })
-    .then((user) => {
-      if (!user) {
-        return res.status(404)
-          .send({
-            message: "User Not found."
-          });
-      }
-      //comparing passwords
-      var passwordIsValid = bcrypt.compareSync(
-        req.body.password,
-        user.password
-      );
-      // checking if password was valid and send response accordingly
-      if (!passwordIsValid) {
-        return res.status(401)
-          .send({
-            accessToken: null,
-            message: "Invalid Password!"
-          });
-      }
-      //signing token with user id
-      var token = jwt.sign({
-        id: user.id
-      }, process.env.API_SECRET, {
-        expiresIn: 86400
-      });
-
-      //responding to client request with user profile success message and  access token .
-      res.status(200)
-        .send({
-          user: {
-            id: user._id,
-            email: user.email,
-            fullName: user.fullName,
-          },
-          message: "Login successfull",
-          accessToken: token,
-          
-        });
-    }).catch(err => {
-      if (err) {
-        res.status(500)
-          .send({
-            message: err
-          });
-        return;
-      }
-    });
-};
-
-module.exports = {signin, signup};
