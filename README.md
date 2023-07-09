@@ -141,16 +141,3 @@ GET /news/search/keyword
 
 Replace `:id` in the routes with the ID of the specific article.
 
-## Contributing
-
-Contributions are welcome! If you find any issues or want to add new features, please submit an issue or a pull request.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-Feel free to customize this README according to your specific project needs. Provide information about any additional features, instructions for running tests, and deployment considerations if applicable.
-
-I hope this helps you create a comprehensive README for your News Aggregator API project. If you have any further questions, feel free to ask!
